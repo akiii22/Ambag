@@ -1,0 +1,15 @@
+{
+  "name": "ambag",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=@ambag/web",
+    "dev:api": "npm run dev --workspace=@ambag/api",
+    "build:web": "npm run build --workspace=@ambag/web",
+    "build:api": "npm run build --workspace=@ambag/api"
+  }
+}
