@@ -1,0 +1,145 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// SCHOOL MEMBERSHIP ROLES
+enum SchoolRole {
+  student
+  teacher
+  school_admin
+
+  @@map("school_role")
+}
+
+// MEMBERSHIP STATUS
+enum MembershipStatus {
+  invited
+  active
+  suspended
+
+  @@map("membership_status")
+}
+
+// TASK STATUS
+enum TaskStatus {
+  todo
+  in_progress
+  completed
+
+  @@map("task_status")
+}
+
+// TASK PRIORITY
+enum TaskPriority {
+  low
+  medium
+  high
+
+  @@map("task_priority")
+}
+
+// USER PROFILE
+// ID comes from Supabase Auth.
+model User {
+  id          String   @id @db.Uuid
+  displayName String?  @map("display_name") @db.VarChar(100)
+  avatarUrl   String?  @map("avatar_url") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships SchoolMembership[]
+  subjects    Subject[]
+  tasks       Task[]
+
+  @@map("users")
+}
+
+// SCHOOL
+model School {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @db.VarChar(150)
+  slug String @unique @db.VarChar(100)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships SchoolMembership[]
+  subjects    Subject[]
+
+  @@map("schools")
+}
+
+// USER <-> SCHOOL RELATIONSHIP
+model SchoolMembership {
+  id       String @id @default(uuid()) @db.Uuid
+  userId   String @map("user_id") @db.Uuid
+  schoolId String @map("school_id") @db.Uuid
+
+  role   SchoolRole       @default(student)
+  status MembershipStatus @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, schoolId])
+  @@index([schoolId, role])
+  @@map("school_memberships")
+}
+
+// SUBJECT
+model Subject {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String  @db.VarChar(100)
+  description String? @db.Text
+
+  ownerId  String  @map("owner_id") @db.Uuid
+  schoolId String? @map("school_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  school School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+
+  tasks Task[]
+
+  @@index([ownerId, schoolId])
+  @@map("subjects")
+}
+
+// TASK
+model Task {
+  id          String  @id @default(uuid()) @db.Uuid
+  title       String  @db.VarChar(150)
+  description String? @db.Text
+
+  status   TaskStatus   @default(todo)
+  priority TaskPriority @default(medium)
+
+  dueDate      DateTime? @map("due_date") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  ownerId   String  @map("owner_id") @db.Uuid
+  subjectId String? @map("subject_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner   User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  subject Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, status])
+  @@index([ownerId, dueDate])
+  @@index([subjectId])
+  @@map("tasks")
+}

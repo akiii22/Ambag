@@ -9,7 +9,11 @@
   "scripts": {
     "dev:web": "npm run dev --workspace=@ambag/web",
     "dev:api": "npm run dev --workspace=@ambag/api",
-    "build:web": "npm run build --workspace=@ambag/web",
-    "build:api": "npm run build --workspace=@ambag/api"
+
+    "build:shared": "npm run build --workspace=@ambag/shared",
+    "build:api": "npm run build:shared && npm run build --workspace=@ambag/api",
+    "build:web": "npm run build:shared && npm run build --workspace=@ambag/web",
+
+    "build": "npm run build:shared && npm run build --workspace=@ambag/api && npm run build --workspace=@ambag/web"
   }
 }
