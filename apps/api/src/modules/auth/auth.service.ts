@@ -1,9 +1,9 @@
 
 import { supabase } from "../../config/supabase.js";
+import { env } from "../../config/env.js";
 import { syncUserProfile } from "../users/user.service.js";
-import type { RegisterInput } from "./auth.schema.js";
-import type {LoginInput} from "./auth.schema.js";
-import {env} from "../../config/env.js";
+
+import type { RegisterInput, LoginInput } from "./auth.schema.js";
 
 export async function registerUser(input: RegisterInput) {
   const { data, error } = await supabase.auth.signUp({
@@ -24,8 +24,6 @@ export async function registerUser(input: RegisterInput) {
     throw new Error("Unable to create user account.");
   }
 
-  // Create an Ambag profile only when Supabase
-  // has issued a session for the newly registered user.
   if (data.session) {
     await syncUserProfile({
       id: data.user.id,
@@ -42,7 +40,6 @@ export async function registerUser(input: RegisterInput) {
     requiresEmailConfirmation: !data.session,
   };
 }
-
 
 export async function loginUser(input: LoginInput) {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -76,8 +73,32 @@ export async function loginUser(input: LoginInput) {
   };
 }
 
+export async function refreshUserSession(refreshToken: string) {
+  const { data, error } = await supabase.auth.refreshSession({
+    refresh_token: refreshToken,
+  });
 
+  if (error || !data.user || !data.session) {
+    throw new Error("Unable to refresh session.");
+  }
 
+  const profile = await syncUserProfile({
+    id: data.user.id,
+  });
+
+  return {
+    user: {
+      id: data.user.id,
+      email: data.user.email,
+      displayName: profile.displayName,
+    },
+    session: {
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+      expiresAt: data.session.expires_at,
+    },
+  };
+}
 
 export async function logoutUser(accessToken: string) {
   const response = await fetch(
@@ -97,9 +118,5 @@ export async function logoutUser(accessToken: string) {
     );
   }
 
-  return {
-    success: true,
-  };
+  return { success: true };
 }
-
-

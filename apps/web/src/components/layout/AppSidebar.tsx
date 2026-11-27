@@ -1,3 +1,6 @@
+ import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 
 import {
   LayoutDashboard,
@@ -29,6 +32,29 @@ export default function AppSidebar({
   isOpen,
   onClose,
 }: AppSidebarProps) {
+
+  const { logout } = useAuth();
+const navigate = useNavigate();
+const [isSigningOut, setIsSigningOut] = useState(false);
+
+async function handleSignOut() {
+  setIsSigningOut(true);
+
+  try {
+    await logout();
+    navigate("/login", { replace: true });
+  } catch {
+    // The local session has already been cleared by AuthContext.
+    // The server logout may have failed, so inform the user.
+    window.alert(
+      "Your local session was cleared, but server sign-out failed. Please check your connection and try again.",
+    );
+    navigate("/login", { replace: true });
+  } finally {
+    onClose();
+    setIsSigningOut(false);
+  }
+}
   return (
     <>
       {isOpen && (
@@ -111,10 +137,14 @@ export default function AppSidebar({
             Help & Support
           </button>
 
-          <button className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-600 hover:bg-slate-50">
-            <LogOut size={19} />
-            Sign out
-          </button>
+<button
+  onClick={handleSignOut}
+  disabled={isSigningOut}
+  className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+>
+  <LogOut size={19} />
+  {isSigningOut ? "Signing out..." : "Sign out"}
+</button>
 
           <p className="mt-4 px-3 text-xs text-slate-400">
             Ambag Workspace · v1.0.0
